@@ -1,7 +1,7 @@
 # MemoryPool
 Extremyl simple but suboptimal implementation of memory pool allocator in C++ 11. Basicaly just a toy code
 
-#The design
+#Design
 Like all other MemoryPool, we are first allocating chunks of memory by chunks of memory. Each chunk is linked by a std::vector<Node*_>, where Node_ is a simple union :
 
 ```C++
@@ -25,7 +25,7 @@ Of course, as we already said, it could be much more powerful, but not without d
 However, this is not as bad as it sounds. Even with this toy code, we get some "nice" results
 You can see the code in "src/tst.cxx" and play with it.
 
-|	|   MemoryPool<int>  | std::vector<int> |
-|	|--------------------|------------------|
-|	| Content Cell       | Content Cell     |
-|------	| Content Cell       | Content Cell     |
+|             |   MemoryPool<int>  | std::vector<int> |
+|-------------|--------------------|------------------|
+| Only add    | Content Cell       | Content Cell     |
+| add + get   | Content Cell       | Content Cell     |
