@@ -31,7 +31,7 @@ template<typename T,
 		 class AllocationPolicy = DefaultAllocationPolicy<T>,
 		 bool aligned = true>
 class BasicMemoryPoolAllocationPolicy 
-    : public AllocationPolicy::template rebind<T*>::other
+    : public std::conditional<sizeof(T) < sizeof(T*), typename AllocationPolicy::template rebind<T*>::other, T>::type
 {
 	protected:
 	union Node_;
