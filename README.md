@@ -25,7 +25,7 @@ Of course, as we already said, it could be much more powerful, but not without d
 However, this is not as bad as it sounds. Even with this toy code, we get some "nice" results
 You can see the code in "src/tst.cxx" and play with it.
 I compiled the code with clang++.
-These results are given on average of 100 runs, wit a loop of 100000000 iterations, using pseudo-random numbers generated with simple, fast function, using -O2 optimization :
+These results are given on average of 100 runs, wit a loop of 100000000 iterations, using pseudo-random integer numbers generated with simple, fast function, using -O2 optimization :
 
 |             |   MemoryPool<int>  | std::vector<int> |
 |-------------|--------------------|------------------|
@@ -66,13 +66,13 @@ Here is the license. But if for some reason you'd like to use my code (u mad ?) 
 	  provided that the above copyright notice and this permission notice 
 	  appear in all copies unless the author says otherwise.				
  														
-	THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-	WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-	MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-	ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-	WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
-	OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
-	CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+	  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   	  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+	  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+	  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+	  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+	  OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+	  CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 	
 ```																						
 
