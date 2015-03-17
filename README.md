@@ -1,6 +1,9 @@
 # MemoryPool
 Extremly simple but suboptimal implementation of memory pool allocator in C++ 11. Basicaly just a toy code
 
+#WARNING !
+Please be aware that this container/allocator can't currently be used with non-POD objects because of the use of unions. Will change that in a next implementation !
+
 #Design
 Like all other MemoryPool, we are first allocating chunks of memory by chunks of memory. Each chunk is linked by a std::vector<Node*_>, where Node_ is a simple union :
 
