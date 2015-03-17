@@ -24,9 +24,10 @@
 #include <MemoryPool.hxx>
 #include <chrono>
 #include <iostream>
-
+#include <thread>
 
 // Some sample and performance measurement of the MemoryPool
+MemoryPool<int> testPool;
 
 static unsigned long x=123456789, y=362436069, z=521288629;
 
@@ -45,6 +46,13 @@ unsigned long randim(void)
   	return z;
 }
 
+void launchTest()
+{
+	for(size_t i = 0; i < 100000; i++)
+  	{
+   		testPool.add(randim());
+   	}
+}
 
 int main(int argc, char* argv[]) 
   {
@@ -68,16 +76,16 @@ int main(int argc, char* argv[])
    	std::cout << myMoryPool[2] << std::endl;
 
   	std::chrono::time_point<std::chrono::system_clock> begin, end;
-   	MemoryPool<int> newPool;
+  	std::thread a(launchTest);
+  	std::thread b(launchTest);
+  	a.join();
+  	b.join();
+   	/*MemoryPool<int> newPool;
    	std::vector<int> newVector;
   	begin = std::chrono::system_clock::now();
   	for(size_t i = 0; i < 100000000; i++)
   	{
    		newPool.add(randim());
-   	}
-    for(size_t i = 0; i < 100000000; i++)
-   	{
-    	int s = newPool.get(i);
    	}
    	end = std::chrono::system_clock::now();
    	std::chrono::duration<double> dur1 = end - begin;
@@ -87,14 +95,10 @@ int main(int argc, char* argv[])
    	{
    		newVector.push_back(randim());
    	}
-   	for(size_t i = 0; i < 100000000; i++)
-  	{
-   		int s = newVector[i];
-   	}
    	end = std::chrono::system_clock::now();
    	std::chrono::duration<double> dur2 = end - begin;
    	std::cout << "First = " << dur1.count() << std::endl;
-   	std::cout << "Second = " << dur2.count() << std::endl;
+   	std::cout << "Second = " << dur2.count() << std::endl;*/
   	return 0;
 }
 

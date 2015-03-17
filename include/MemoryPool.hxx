@@ -25,19 +25,49 @@
 
 #include <Allocator.hxx>
 #include <memory>
+#include <mutex>
 #include <cassert>
 #include <vector>
 
 
+class ThreadSupport
+{
+	protected:
+	ThreadSupport() = default;
+	ThreadSupport(const ThreadSupport& other) = default;
+	
+	public:
+	void Lock()
+	{
+		std::lock_guard<std::recursive_mutex> autoLock(lock_);
+	}
+	
+	private:
+	std::recursive_mutex lock_;
+};
+
+class NoThreadSupport
+{
+	protected:
+	NoThreadSupport() = default;
+	NoThreadSupport(const NoThreadSupport& other) = default;
+	
+	public:
+	void Lock(){}
+};
+
 template<typename T, 
 		 class AllocationPolicy = DefaultAllocationPolicy<T>,
-		 bool aligned = true>
+		 bool aligned = true,
+		 bool threaded = false>
 class BasicMemoryPoolAllocationPolicy 
-    : public AllocationPolicy::template rebind<T*>::other
+    : public AllocationPolicy::template rebind<T*>::other,
+      std::conditional<threaded, ThreadSupport, NoThreadSupport>::type
 {
 	protected:
 	union Node_;
 	typedef typename AllocationPolicy::template rebind<T*>::other Alloc;
+	typedef typename std::conditional<threaded, ThreadSupport, NoThreadSupport>::type ThreadHelper; 
 	
 	public:
 	explicit BasicMemoryPoolAllocationPolicy(allocation_size_type capacity = 4096);
@@ -104,8 +134,9 @@ class BasicMemoryPoolAllocationPolicy
 
 template<typename T,
 		 class AllocationPolicy,
-		 bool aligned>
-BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::BasicMemoryPoolAllocationPolicy(allocation_size_type capacity) 
+		 bool aligned,
+		 bool threaded>
+BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>::BasicMemoryPoolAllocationPolicy(allocation_size_type capacity) 
 : capacity_(capacity),
   freeNode_(nullptr),
   currentNode_(nullptr),
@@ -117,8 +148,9 @@ BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::BasicMemoryPoolAl
 
 template<typename T,
 		 class AllocationPolicy,
-		 bool aligned>
-BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::BasicMemoryPoolAllocationPolicy(const BasicMemoryPoolAllocationPolicy& other) 
+		 bool aligned,
+		 bool threaded>
+BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>::BasicMemoryPoolAllocationPolicy(const BasicMemoryPoolAllocationPolicy& other) 
 : capacity_(other.capacity_),
   freeNode_(other.freeNode_),
   currentNode_(other.currentNode_),
@@ -143,8 +175,9 @@ BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::BasicMemoryPoolAl
 
 template<typename T,
 		 class AllocationPolicy,
-		 bool aligned>
-BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::BasicMemoryPoolAllocationPolicy(BasicMemoryPoolAllocationPolicy&& other) 
+		 bool aligned,
+		 bool threaded>
+BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>::BasicMemoryPoolAllocationPolicy(BasicMemoryPoolAllocationPolicy&& other) 
 : capacity_(other.capacity_),
   freeNode_(other.freeNode_),
   currentNode_(other.currentNode_),
@@ -160,8 +193,9 @@ BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::BasicMemoryPoolAl
 
 template<typename T,
 		 class AllocationPolicy,
-		 bool aligned>
-BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::~BasicMemoryPoolAllocationPolicy()
+		 bool aligned,
+		 bool threaded>
+BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>::~BasicMemoryPoolAllocationPolicy()
 {
 	for(auto e : firstNode_)
 	{
@@ -172,11 +206,13 @@ BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::~BasicMemoryPoolA
 
 template<typename T,
 		 class AllocationPolicy,
-		 bool aligned>
-		 template<bool isAligned>
-typename std::enable_if<!isAligned, typename BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::Node_>::type*
-BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::newBlock(allocation_size_type size)
+		 bool aligned,
+		 bool threaded>
+template<bool isAligned>
+typename std::enable_if<!isAligned, typename BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>::Node_>::type*
+BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>::newBlock(allocation_size_type size)
 {
+	ThreadHelper::Lock();
 	currentNode_ = static_cast<Node_*>(operator new(size * sizeof(Node_) + sizeof(Node_)));
 	
 	firstNode_.push_back(currentNode_);
@@ -187,12 +223,15 @@ BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::newBlock(allocati
 
 template<typename T,
 		 class AllocationPolicy,
-		 bool aligned>
+		 bool aligned,
+		 bool threaded>
 template<bool isAligned>
-typename std::enable_if<isAligned, typename BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::Node_>::type*
-BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::newBlock(allocation_size_type size)
+typename std::enable_if<isAligned, typename BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>::Node_>::type*
+BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>::newBlock(allocation_size_type size)
 {
 	currentNode_ = static_cast<Node_*>(operator new(size * sizeof(Node_) + sizeof(Node_)*2));
+	
+	ThreadHelper::Lock();
 	currentNode_ += (-reinterpret_cast<uintptr_t>(currentNode_)) & (alignement - 1);
 	
 	firstNode_.push_back(currentNode_);
@@ -203,8 +242,9 @@ BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::newBlock(allocati
 
 template<typename T,
 		 class AllocationPolicy,
-		 bool aligned>
-void BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::buildFreeList()	
+		 bool aligned,
+		 bool threaded>
+void BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>::buildFreeList()	
 {
 	Node_* currentNode = currentNode_;
 	Node_* tmp = freeNode_;
@@ -219,10 +259,13 @@ void BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::buildFreeLis
 }
 template<typename T,
 		 class AllocationPolicy,
-		 bool aligned>
-T* BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::allocate(allocation_size_type size, const T* hint)
+		 bool aligned,
+		 bool threaded>
+T* BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>::allocate(allocation_size_type size, const T* hint)
 {
 	Node_* returnPtr = nullptr;
+	
+	ThreadHelper::Lock();
 	returnPtr = freeNode_ != nullptr ? freeNode_ : newBlock(capacity_);
 	freeNode_ = freeNode_->next_;
 	return reinterpret_cast<T*>(returnPtr);
@@ -232,8 +275,9 @@ T* BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::allocate(alloc
 // After deletion, it will only update free nodes implicit list
 template<typename T,
 		 class AllocationPolicy,
-		 bool aligned>
-void BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::deallocate(T* ptr, allocation_size_type size)
+		 bool aligned,
+		 bool threaded>
+void BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>::deallocate(T* ptr, allocation_size_type size)
 {
 #	ifdef	DEBUG
 	bool t = false;
@@ -245,6 +289,7 @@ void BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::deallocate(T
 #	endif
 
 	Node_* tmp;
+	ThreadHelper::Lock();
 	for(ptrdiff i = 0; i != size; ++i)
 	{
 		tmp = freeNode_;
@@ -259,8 +304,9 @@ void BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>::deallocate(T
 // Todo : Switch to thread-safe version if requested
 template<typename T, 
 		 class AllocationPolicy = DefaultAllocationPolicy<T>,
-		 bool aligned = true>
-using BasicMemoryPoolAllocator = Allocator<T, BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned>>;
+		 bool aligned = true,
+		 bool threaded = false>
+using BasicMemoryPoolAllocator = Allocator<T, BasicMemoryPoolAllocationPolicy<T, AllocationPolicy, aligned, threaded>>;
 
 // Basically just adding a subset of std::vector functionalities
 template<typename T,
@@ -270,17 +316,17 @@ class MemoryPool : public AllocationPolicy
 	using Allocator = AllocationPolicy;
 	
 	public:
-	MemoryPool(allocation_size_type capacity = 4096) 
+	explicit MemoryPool(allocation_size_type capacity = 4096) 
 	: Allocator(capacity),
 	  size_(0)
 	{}
 	
-	MemoryPool(MemoryPool const& other)
+	explicit MemoryPool(MemoryPool const& other)
 	 : Allocator(other),
 	   size_(other.size_)
 	{}
 	
-	MemoryPool(MemoryPool&& other) 
+	explicit MemoryPool(MemoryPool&& other) 
 	: Allocator(other), 
 	  size_(other.size_)
 	{
