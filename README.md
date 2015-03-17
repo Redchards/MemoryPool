@@ -51,6 +51,7 @@ Build results can then be found under ./bin/$config/ where $config is either deb
 #Summary
 It was a fun study case, but definitly not worth it. However, it proved that for the majority of cases, std::vector is more than fast enough. Current impementation (at least on clang and gcc) is very fast.
 Maybe some other technics, like pointer bumping, and make the deletion feature goes away could vastly improve performances of such container. But this is another story ...
+However, if you think there's something that can vatly improve this implementation, just let me know.
 
 #License
 Here is the license. But if for some reason you'd like to use my code (u mad ?) but don't want to include the license notice, please just refer to me.
