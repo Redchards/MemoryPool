@@ -31,7 +31,7 @@ These results are given on average of 100 runs, wit a loop of 100000000 iteratio
 |-------------|--------------------|------------------|
 |    add      | 0.77s              | 0.80s            |
 
-So, not enough improvement to justify anithing. Moreover, using -O3 optimizations, we get a (bad) surprise
+So, not enough improvement to justify anything. Moreover, using -O3 optimizations, we get a (bad) surprise
 
 |             |   MemoryPool<int>  | std::vector<int> |
 |-------------|--------------------|------------------|
